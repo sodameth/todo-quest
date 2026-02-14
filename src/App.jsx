@@ -210,7 +210,7 @@ const LootModal=({items,onClose})=>(<div onClick={onClose} style={{position:"fix
 </div></div>);
 
 /* ─── ACHIEVEMENT TOAST ─── */
-const AchievementToast=({achievement,onDone})=>{const[fading,setFading]=useState(false);useEffect(()=>{const f=setTimeout(()=>setFading(true),8500);const t=setTimeout(onDone,10000);return()=>{clearTimeout(f);clearTimeout(t)}},[onDone]);return(
+const AchievementToast=({achievement,onDone})=>{const[fading,setFading]=useState(false);useEffect(()=>{const f=setTimeout(()=>setFading(true),3500);const t=setTimeout(onDone,5000);return()=>{clearTimeout(f);clearTimeout(t)}},[onDone]);return(
 <div style={{position:"fixed",top:20,left:"50%",transform:"translateX(-50%)",zIndex:3000,background:"linear-gradient(135deg,#1e1932ee,#16131fee)",border:"1.5px solid rgba(251,191,36,0.4)",borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,animation:fading?"slideUp 1.5s ease-out forwards":"slideDown 0.4s ease-out",boxShadow:"0 8px 30px rgba(0,0,0,0.5)"}}>
 <span style={{fontSize:"1.8rem"}}>{achievement.emoji}</span>
 <div><div style={{fontSize:"0.6rem",color:"#fbbf24",fontWeight:700,marginBottom:2}}>🏅 업적 달성!</div>
