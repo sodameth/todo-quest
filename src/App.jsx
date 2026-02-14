@@ -223,7 +223,7 @@ const loadSave=()=>{try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{}}ca
 
 /* ═══════════════════════════ MAIN APP ═══════════════════════════ */
 export default function TodoRPG(){
-  const saved=loadSave();
+  const[saved]=useState(loadSave);
   const[todos,setTodos]=useState(saved.todos||[]);
   const[input,setInput]=useState("");
   const[difficulty,setDifficulty]=useState("easy");
@@ -313,13 +313,15 @@ export default function TodoRPG(){
   const xpMultiplier=(1+(petBonus.xpBonus||0))*(combo>=10?2.0:combo>=5?1.5:combo>=3?1.2:1.0);
 
   /* ─── AUTO-SAVE TO LOCALSTORAGE ─── */
-  useEffect(()=>{localStorage.setItem(SAVE_KEY,JSON.stringify({
+  const saveData=useCallback(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify({
     todos,categories,hero,dragonStage,dragonHp,battleLog,completedCount,victoryDragons,
     combo,maxCombo,skillUseCount,inventory,equipped,unlockedAch,hardCount,onTimeCount,
     pets,activePet,usedRevive,dailyQuest,dailyCompleted,dragonsKilled
-  }))},[todos,categories,hero,dragonStage,dragonHp,battleLog,completedCount,victoryDragons,
+  }))}catch(e){console.warn('save failed',e)}},[todos,categories,hero,dragonStage,dragonHp,battleLog,completedCount,victoryDragons,
     combo,maxCombo,skillUseCount,inventory,equipped,unlockedAch,hardCount,onTimeCount,
     pets,activePet,usedRevive,dailyQuest,dailyCompleted,dragonsKilled]);
+  useEffect(()=>{saveData()},[saveData]);
+  useEffect(()=>{const h=()=>saveData();window.addEventListener('beforeunload',h);return()=>window.removeEventListener('beforeunload',h)},[saveData]);
 
   useEffect(()=>{if(logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight},[battleLog]);
   useEffect(()=>{if(hero.level>prevLevel.current)setShowLevelUp(hero.level);prevLevel.current=hero.level},[hero.level]);
