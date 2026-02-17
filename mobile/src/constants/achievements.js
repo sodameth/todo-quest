@@ -1,0 +1,15 @@
+export const ACHIEVEMENTS = [
+  { id: "first_quest", name: "첫 발걸음", desc: "첫 번째 퀘스트 완료", emoji: "🌱", check: (s) => s.completedCount >= 1 },
+  { id: "quest_10", name: "모험가", desc: "퀘스트 10개 완료", emoji: "📋", check: (s) => s.completedCount >= 10 },
+  { id: "quest_50", name: "퀘스트 마스터", desc: "퀘스트 50개 완료", emoji: "📜", check: (s) => s.completedCount >= 50 },
+  { id: "first_kill", name: "드래곤 헌터", desc: "첫 드래곤 처치", emoji: "🐉", check: (s) => s.dragonsKilled >= 1 },
+  { id: "kill_5", name: "드래곤 슬레이어", desc: "드래곤 5마리 처치", emoji: "🔥", check: (s) => s.dragonsKilled >= 5 },
+  { id: "combo_3", name: "연속 달성!", desc: "3 콤보 달성", emoji: "🔥", check: (s) => s.maxCombo >= 3 },
+  { id: "combo_10", name: "콤보 마스터", desc: "10 콤보 달성", emoji: "💥", check: (s) => s.maxCombo >= 10 },
+  { id: "level_5", name: "성장하는 전사", desc: "레벨 5 달성", emoji: "⬆️", check: (s) => s.level >= 5 },
+  { id: "level_10", name: "베테랑", desc: "레벨 10 달성", emoji: "🏅", check: (s) => s.level >= 10 },
+  { id: "ontime_5", name: "시간 엄수", desc: "시간 내 완료 5회", emoji: "⏰", check: (s) => s.onTimeCount >= 5 },
+  { id: "hard_3", name: "도전자", desc: "어려움 퀘스트 3개 완료", emoji: "💪", check: (s) => s.hardCount >= 3 },
+  { id: "daily_3", name: "일일 미션 수행자", desc: "일일 퀘스트 3회 완료", emoji: "🎯", check: (s) => s.dailyCompleted >= 3 },
+  { id: "pet_first", name: "동물 친구", desc: "첫 펫 획득", emoji: "🐾", check: (s) => s.petCount >= 1 },
+];
