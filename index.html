@@ -2,12 +2,19 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
     <meta name="description" content="할 일을 완료하고 용사를 키워 드래곤을 처치하라! RPG 게이미피케이션 투두리스트" />
     <meta name="theme-color" content="#0f0c18" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TODO QUEST" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <link rel="manifest" href="/manifest.json" />
     <title>⚔️ TODO QUEST - RPG 투두리스트</title>
     <style>
-      body { margin: 0; background: #0f0c18; }
+      body { margin: 0; background: #0f0c18; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+      html { height: -webkit-fill-available; }
+      body { min-height: -webkit-fill-available; }
     </style>
   </head>
   <body>

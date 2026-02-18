@@ -523,7 +523,7 @@ export default function TodoRPG(){
 
   /* ═══════════════════ RENDER ═══════════════════ */
   return(
-  <div style={{minHeight:"100vh",background:"linear-gradient(170deg,#0f0c18 0%,#1a1028 40%,#12141f 100%)",color:"#e8e0f0",fontFamily:"'Noto Sans KR','Segoe UI',sans-serif",position:"relative",overflow:"hidden"}}>
+  <div style={{minHeight:"100vh",background:"linear-gradient(170deg,#0f0c18 0%,#1a1028 40%,#12141f 100%)",color:"#e8e0f0",fontFamily:"'Noto Sans KR','Segoe UI',sans-serif",position:"relative",overflow:"hidden",paddingTop:"env(safe-area-inset-top)",paddingBottom:"env(safe-area-inset-bottom)"}}>
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Press+Start+2P&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
