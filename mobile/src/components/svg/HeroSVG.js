@@ -10,10 +10,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { HERO_TIERS } from '../../constants/heroData';
 
-const AnimatedSvgView = Animated.createAnimatedComponent(
-  require('react-native').View
-);
-
 export default function HeroSVG({ tier, size = 120, animate = false, shaking = false, hpRatio = 1 }) {
   const t = HERO_TIERS[tier] || HERO_TIERS[0];
   const w = hpRatio < 0.3;
@@ -63,7 +59,7 @@ export default function HeroSVG({ tier, size = 120, animate = false, shaking = f
   }));
 
   return (
-    <AnimatedSvgView style={[{ width: size, height: size }, containerStyle]}>
+    <Animated.View style={[{ width: size, height: size }, containerStyle]}>
       <Svg width={size} height={size} viewBox="0 0 120 120">
         {/* Aura */}
         {t.aura && (
@@ -141,6 +137,6 @@ export default function HeroSVG({ tier, size = 120, animate = false, shaking = f
           <Circle cx="35" cy="30" r="2" fill="#FFD700" opacity="0.8" />
         )}
       </Svg>
-    </AnimatedSvgView>
+    </Animated.View>
   );
 }

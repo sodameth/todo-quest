@@ -5,8 +5,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withDelay,
-  runOnJS,
 } from 'react-native-reanimated';
 
 export default function FireBreath({ onDone }) {

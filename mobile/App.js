@@ -1,8 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { useGameState } from './src/hooks/useGameState';
 import { useTimer } from './src/hooks/useTimer';
+
+SplashScreen.preventAutoHideAsync();
 import HeroCard from './src/components/HeroCard';
 import TabBar from './src/components/TabBar';
 import DailyQuestBanner from './src/components/DailyQuestBanner';
@@ -118,9 +122,21 @@ function TodoRPG() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'PressStart2P': require('./assets/fonts/PressStart2P-Regular.ttf'),
+  });
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} onLayout={onLayoutRootView}>
         <TodoRPG />
       </SafeAreaView>
     </SafeAreaProvider>

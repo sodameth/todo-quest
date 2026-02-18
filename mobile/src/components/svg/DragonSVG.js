@@ -46,7 +46,7 @@ export default function DragonSVG({ stage, shaking = false, size = 140, hit = fa
       { translateX: shakeX.value },
       { scale: 0.7 + s * 0.3 },
     ],
-    opacity: hit ? 1.5 : 1,
+    opacity: hit ? 0.5 : 1,
   }));
 
   return (

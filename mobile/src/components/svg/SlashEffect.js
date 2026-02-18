@@ -5,17 +5,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withDelay,
-  runOnJS,
 } from 'react-native-reanimated';
 
 export default function SlashEffect({ onDone }) {
   const opacity1 = useSharedValue(0);
-  const opacity2 = useSharedValue(0);
 
   useEffect(() => {
     opacity1.value = withTiming(1, { duration: 50 });
-    opacity2.value = withDelay(80, withTiming(1, { duration: 50 }));
     const t = setTimeout(() => onDone?.(), 600);
     return () => clearTimeout(t);
   }, []);
