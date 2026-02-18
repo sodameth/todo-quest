@@ -17,7 +17,7 @@ import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-nativ
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
-import { documentDirectory, writeAsStringAsync } from 'expo-file-system';
+import { documentDirectory, writeAsStringAsync } from 'expo-file-system/legacy';
 
 import { useGame, Todo } from '../context/GameContext';
 import { ProgressBar, ProofModal, UndoModal, FloatingTexts, AchievementToast, MemoModal } from '../components/shared';
