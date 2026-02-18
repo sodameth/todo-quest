@@ -19,12 +19,13 @@ import { DRAGON_STAGES, getHeroStats, getHeroTier, SKILLS } from '../constants';
 export default function BattleScreen() {
   const {
     hero, dragonStage, dragonHp, battleLog, skillCooldowns, activeBuffs,
-    attack, useSkill, theme, now,
+    attack, useSkill, theme,
   } = useGame();
 
   const logRef = useRef<ScrollView>(null);
   const heroShake = useRef(new Animated.Value(0)).current;
   const dragonShake = useRef(new Animated.Value(0)).current;
+  const prevHpRef = useRef(hero.hp);
 
   const stats = getHeroStats(hero.level);
   const dragon = DRAGON_STAGES[dragonStage];
@@ -45,15 +46,21 @@ export default function BattleScreen() {
     ]).start();
   };
 
+  // 피격 시 흔들림 효과
+  useEffect(() => {
+    if (hero.hp < prevHpRef.current) {
+      shakeHero();
+    }
+    prevHpRef.current = hero.hp;
+  }, [hero.hp]);
+
   const handleAttack = () => {
     if (!canBattle) return;
-    attack();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    attack(); // GameContext 내부에서 Haptics.Medium 처리
   };
 
   const handleSkill = (skill: typeof SKILLS[0]) => {
-    useSkill(skill);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    useSkill(skill); // GameContext 내부에서 Haptics.Heavy 처리
   };
 
   if (!canBattle && !isDead) {

@@ -6,8 +6,6 @@ import {
   Animated,
   Modal,
   TouchableOpacity,
-  ScrollView,
-  Pressable,
   TextInput,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
