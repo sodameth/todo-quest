@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host",
+    "cap:sync": "vite build && cap sync",
+    "cap:ios": "vite build && cap sync ios && cap open ios"
   },
   "dependencies": {
     "react": "^18.3.1",
