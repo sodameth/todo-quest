@@ -33,7 +33,13 @@
           "color": "#facc15"
         }
       ],
-      "expo-image-picker"
+      "expo-image-picker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "QR 코드를 스캔하여 퀘스트를 완료하려면 카메라 접근이 필요합니다."
+        }
+      ]
     ]
   }
 }

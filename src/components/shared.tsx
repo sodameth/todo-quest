@@ -10,6 +10,7 @@ import {
   Pressable,
   TextInput,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY, RARITY_COLOR } from '../constants';
 
@@ -92,6 +93,81 @@ export const AchievementToast: React.FC = () => {
   );
 };
 
+/* ─── QR Scanner Modal ─── */
+// 카메라 뷰는 반드시 transparent={false} 인 별도 Modal에서 렌더링해야 합니다.
+// transparent Modal 안에 CameraView를 넣으면 iOS/Android 모두 흰 화면(white screen)이 발생합니다.
+const QRScannerModal: React.FC<{
+  visible: boolean;
+  onScanned: (data: string) => void;
+  onClose: () => void;
+}> = ({ visible, onScanned, onClose }) => {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scanned, setScanned] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setScanned(false);
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  if (!permission) {
+    return (
+      // transparent={false} 필수: 카메라 렌더링 시 흰 화면 방지
+      <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
+        <View style={styles.qrContainer}>
+          <Text style={styles.qrPermissionText}>카메라 권한을 확인 중...</Text>
+        </View>
+      </Modal>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
+        <View style={styles.qrContainer}>
+          <Text style={styles.qrPermissionText}>카메라 접근 권한이 필요합니다</Text>
+          <TouchableOpacity style={styles.qrPermissionBtn} onPress={requestPermission}>
+            <Text style={styles.qrPermissionBtnText}>권한 허용</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.qrPermissionBtn, { backgroundColor: 'rgba(255,255,255,0.1)', marginTop: 8 }]} onPress={onClose}>
+            <Text style={[styles.qrPermissionBtnText, { color: '#aaa' }]}>취소</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
+  return (
+    // transparent={false} 필수: CameraView가 흰 화면 없이 정상 렌더링됩니다
+    <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.qrContainer}>
+        <Text style={styles.qrTitle}>📷 QR 코드 스캔</Text>
+        <Text style={styles.qrSubTitle}>완료 증명용 QR 코드를 화면에 비춰주세요</Text>
+
+        <CameraView
+          style={styles.qrCamera}
+          facing="back"
+          onBarcodeScanned={scanned ? undefined : ({ data }) => {
+            setScanned(true);
+            onScanned(data);
+          }}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+        />
+
+        <View style={styles.qrOverlay}>
+          <View style={styles.qrFrame} />
+        </View>
+
+        <TouchableOpacity style={styles.qrCloseBtn} onPress={onClose}>
+          <Text style={styles.qrCloseBtnText}>✕ 닫기</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+};
+
 /* ─── Proof Modal ─── */
 export const ProofModal: React.FC<{
   visible: boolean;
@@ -100,43 +176,68 @@ export const ProofModal: React.FC<{
   onClose: () => void;
 }> = ({ visible, todo, onConfirm, onClose }) => {
   const { theme } = useGame();
+  const [showQR, setShowQR] = useState(false);
   if (!todo) return null;
   const d = DIFFICULTY[todo.difficulty as keyof typeof DIFFICULTY];
 
+  const handleClose = () => {
+    setShowQR(false);
+    onClose();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalCard, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
-          <Text style={styles.modalTitle}>⚔️ 퀘스트 완료</Text>
-          <Text style={[styles.modalSubTitle, { color: theme.textMuted }]}>정말 완료하셨나요?</Text>
+    <>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
+            <Text style={styles.modalTitle}>⚔️ 퀘스트 완료</Text>
+            <Text style={[styles.modalSubTitle, { color: theme.textMuted }]}>정말 완료하셨나요?</Text>
 
-          <View style={[styles.todoPreview, { backgroundColor: theme.bgCardSecondary, borderColor: theme.border }]}>
-            <Text style={[styles.diffBadge, { color: d.color }]}>{d.emoji}</Text>
-            <Text style={[styles.todoPreviewText, { color: theme.text }]} numberOfLines={2}>{todo.text}</Text>
-            <Text style={[styles.xpText, { color: d.color }]}>+{d.xp}xp</Text>
-          </View>
-
-          {todo.memo ? (
-            <View style={[styles.memoBox, { backgroundColor: theme.bgCardSecondary, borderColor: theme.border }]}>
-              <Text style={[styles.memoLabel, { color: theme.textMuted }]}>메모</Text>
-              <Text style={[styles.memoText, { color: theme.text }]}>{todo.memo}</Text>
+            <View style={[styles.todoPreview, { backgroundColor: theme.bgCardSecondary, borderColor: theme.border }]}>
+              <Text style={[styles.diffBadge, { color: d.color }]}>{d.emoji}</Text>
+              <Text style={[styles.todoPreviewText, { color: theme.text }]} numberOfLines={2}>{todo.text}</Text>
+              <Text style={[styles.xpText, { color: d.color }]}>+{d.xp}xp</Text>
             </View>
-          ) : null}
 
-          <View style={styles.modalBtns}>
-            <TouchableOpacity style={[styles.modalBtn, { borderColor: theme.border }]} onPress={onClose}>
-              <Text style={[styles.modalBtnText, { color: theme.textMuted }]}>취소</Text>
-            </TouchableOpacity>
+            {todo.memo ? (
+              <View style={[styles.memoBox, { backgroundColor: theme.bgCardSecondary, borderColor: theme.border }]}>
+                <Text style={[styles.memoLabel, { color: theme.textMuted }]}>메모</Text>
+                <Text style={[styles.memoText, { color: theme.text }]}>{todo.memo}</Text>
+              </View>
+            ) : null}
+
             <TouchableOpacity
-              style={[styles.modalBtn, styles.modalBtnPrimary]}
-              onPress={() => onConfirm(null)}
+              style={[styles.qrScanBtn, { borderColor: theme.border }]}
+              onPress={() => setShowQR(true)}
             >
-              <Text style={styles.modalBtnPrimaryText}>완료하기!</Text>
+              <Text style={[styles.qrScanBtnText, { color: theme.textMuted }]}>📷 QR 스캔으로 완료</Text>
             </TouchableOpacity>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={[styles.modalBtn, { borderColor: theme.border }]} onPress={handleClose}>
+                <Text style={[styles.modalBtnText, { color: theme.textMuted }]}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                onPress={() => onConfirm(null)}
+              >
+                <Text style={styles.modalBtnPrimaryText}>완료하기!</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      {/* QR 스캐너: transparent={false} 별도 Modal로 렌더링하여 흰 화면 방지 */}
+      <QRScannerModal
+        visible={showQR}
+        onScanned={(data) => {
+          setShowQR(false);
+          onConfirm(data);
+        }}
+        onClose={() => setShowQR(false)}
+      />
+    </>
   );
 };
 
@@ -413,4 +514,78 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 14,
   },
+  qrScanBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  qrScanBtnText: { fontSize: 13, fontWeight: '700' },
+  // QR Scanner Modal styles
+  qrContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  qrTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#e8e0f0',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  qrSubTitle: {
+    fontSize: 12,
+    color: '#8b7fa0',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  qrCamera: {
+    width: 280,
+    height: 280,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  qrOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  qrFrame: {
+    width: 220,
+    height: 220,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    borderRadius: 12,
+    marginTop: 60,
+  },
+  qrCloseBtn: {
+    marginTop: 28,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  qrCloseBtnText: { fontSize: 14, fontWeight: '700', color: '#e8e0f0' },
+  qrPermissionText: {
+    fontSize: 15,
+    color: '#e8e0f0',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  qrPermissionBtn: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  qrPermissionBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });
