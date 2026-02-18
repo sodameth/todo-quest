@@ -1,144 +1,217 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { useGameState } from './src/hooks/useGameState';
+import { useTimer } from './src/hooks/useTimer';
+import HeroCard from './src/components/HeroCard';
+import TabBar from './src/components/TabBar';
+import DailyQuestBanner from './src/components/DailyQuestBanner';
+import TodoScreen from './src/screens/TodoScreen';
+import BattleScreen from './src/screens/BattleScreen';
+import InventoryScreen from './src/screens/InventoryScreen';
+import AchievementsScreen from './src/screens/AchievementsScreen';
+import VictoryScreen from './src/screens/VictoryScreen';
+import ProofModal from './src/components/modals/ProofModal';
+import UndoModal from './src/components/modals/UndoModal';
+import LootModal from './src/components/modals/LootModal';
+import AchievementToast from './src/components/modals/AchievementToast';
+import LevelUpEffect from './src/components/modals/LevelUpEffect';
+import { Colors } from './src/theme/colors';
 
-// DIAGNOSTIC MODE: 최소한의 앱으로 Expo 연결 테스트
-export default function App() {
-  const [status, setStatus] = useState('Step 1: Basic render OK');
-  const [errors, setErrors] = useState([]);
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
-  useEffect(() => {
-    async function diagnose() {
-      const errs = [];
+function Stars() {
+  const stars = useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      key: i,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      size: Math.random() * 3 + 1,
+      opacity: Math.random() * 0.4 + 0.1,
+    })),
+    []
+  );
 
-      // Step 2: Test expo-font
-      try {
-        const Font = require('expo-font');
-        setStatus('Step 2: expo-font loaded');
-        await Font.loadAsync({
-          'PressStart2P': require('./assets/fonts/PressStart2P-Regular.ttf'),
-        });
-        setStatus('Step 2: Font loaded OK');
-      } catch (e) {
-        errs.push('expo-font: ' + e.message);
-      }
+  return (
+    <View style={styles.starsContainer} pointerEvents="none">
+      {stars.map(s => (
+        <View
+          key={s.key}
+          style={{
+            position: 'absolute',
+            left: s.left,
+            top: s.top,
+            width: s.size,
+            height: s.size,
+            borderRadius: s.size / 2,
+            backgroundColor: '#fff',
+            opacity: s.opacity,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
 
-      // Step 3: Test react-native-safe-area-context
-      try {
-        require('react-native-safe-area-context');
-        setStatus('Step 3: safe-area-context OK');
-      } catch (e) {
-        errs.push('safe-area-context: ' + e.message);
-      }
-
-      // Step 4: Test react-native-reanimated
-      try {
-        require('react-native-reanimated');
-        setStatus('Step 4: reanimated OK');
-      } catch (e) {
-        errs.push('reanimated: ' + e.message);
-      }
-
-      // Step 5: Test react-native-svg
-      try {
-        require('react-native-svg');
-        setStatus('Step 5: svg OK');
-      } catch (e) {
-        errs.push('svg: ' + e.message);
-      }
-
-      // Step 6: Test expo-haptics
-      try {
-        require('expo-haptics');
-        setStatus('Step 6: haptics OK');
-      } catch (e) {
-        errs.push('haptics: ' + e.message);
-      }
-
-      // Step 7: Test expo-image-picker
-      try {
-        require('expo-image-picker');
-        setStatus('Step 7: image-picker OK');
-      } catch (e) {
-        errs.push('image-picker: ' + e.message);
-      }
-
-      // Step 8: Test our hooks
-      try {
-        require('./src/theme/colors');
-        require('./src/hooks/useTimer');
-        require('./src/hooks/useGameState');
-        setStatus('Step 8: hooks OK');
-      } catch (e) {
-        errs.push('hooks: ' + e.message);
-      }
-
-      if (errs.length === 0) {
-        setStatus('ALL OK! All modules loaded successfully.');
-      }
-      setErrors(errs);
-    }
-    diagnose();
-  }, []);
+function TodoRPG() {
+  const now = useTimer();
+  const game = useGameState(now);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>TODO QUEST - Diagnostic</Text>
-      <Text style={styles.status}>{status}</Text>
-      {errors.length > 0 && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorTitle}>ERRORS:</Text>
-          {errors.map((e, i) => (
-            <Text key={i} style={styles.errorText}>{e}</Text>
-          ))}
-        </View>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.bg.primary} />
+      <Stars />
+
+      {/* Overlays */}
+      {game.showLevelUp && <LevelUpEffect level={game.showLevelUp} onDone={() => game.setShowLevelUp(null)} />}
+      {game.achToast && <AchievementToast achievement={game.achToast} onDone={() => game.setAchToast(null)} />}
+      {game.proofModal && (
+        <ProofModal
+          todo={game.proofModal}
+          onConfirm={url => game.confirmComplete(game.proofModal.id, url)}
+          onClose={() => game.setProofModal(null)}
+        />
       )}
-      {errors.length === 0 && status.includes('ALL OK') && (
-        <Text style={styles.success}>All modules work! The issue is elsewhere.</Text>
+      {game.undoModal && (
+        <UndoModal
+          todo={game.undoModal}
+          onConfirm={game.confirmUndo}
+          onClose={() => game.setUndoModal(null)}
+        />
       )}
+      {game.lootModal && (
+        <LootModal items={game.lootModal} onClose={() => game.setLootModal(null)} />
+      )}
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>⚔️ TODO QUEST ⚔️</Text>
+            <Text style={styles.subtitle}>할 일을 완료하고 용사를 키워 드래곤을 처치하라!</Text>
+          </View>
+
+          {/* Hero Card */}
+          <HeroCard game={game} />
+
+          {/* Daily Quest */}
+          <DailyQuestBanner dailyQuest={game.dailyQuest} />
+
+          {/* Tab Bar */}
+          <TabBar game={game} />
+
+          {/* Screens */}
+          {game.screen === 'victory' && <VictoryScreen game={game} />}
+          {game.screen === 'todo' && <TodoScreen game={game} now={now} />}
+          {game.screen === 'battle' && <BattleScreen game={game} />}
+          {game.screen === 'inventory' && <InventoryScreen game={game} />}
+          {game.screen === 'achievements' && <AchievementsScreen game={game} />}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
+  );
+}
+
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0f0c18', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ color: '#f87171', fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>앱 오류 발생</Text>
+          <Text style={{ color: '#fff', fontSize: 12, textAlign: 'center' }}>{String(this.state.error)}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function App() {
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        await Font.loadAsync({
+          'PressStart2P': require('./assets/fonts/PressStart2P-Regular.ttf'),
+        });
+      } catch (e) {
+        console.warn('Font load failed:', e);
+      } finally {
+        setAppReady(true);
+        SplashScreen.hideAsync().catch(() => {});
+      }
+    }
+    prepare();
+  }, []);
+
+  if (!appReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0f0c18', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#facc15', fontSize: 16 }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+          <TodoRPG />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0c18',
-    justifyContent: 'center',
+    backgroundColor: Colors.bg.primary,
+  },
+  starsContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  scrollContent: {
+    maxWidth: 520,
+    alignSelf: 'center',
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+    paddingTop: 16,
+    zIndex: 1,
+  },
+  header: {
     alignItems: 'center',
-    padding: 30,
+    marginBottom: 20,
   },
   title: {
+    fontFamily: 'PressStart2P',
+    fontSize: 14,
     color: '#facc15',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  status: {
-    color: '#a78bfa',
-    fontSize: 14,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  errorBox: {
-    backgroundColor: 'rgba(239,68,68,0.15)',
-    borderRadius: 10,
-    padding: 15,
-    width: '100%',
-  },
-  errorTitle: {
-    color: '#f87171',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  errorText: {
-    color: '#fca5a5',
-    fontSize: 12,
+    textShadowColor: '#b8860b',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
+    letterSpacing: 2,
     marginBottom: 4,
   },
-  success: {
-    color: '#4ade80',
-    fontSize: 16,
-    fontWeight: 'bold',
+  subtitle: {
+    fontSize: 11,
+    color: '#8b7fa0',
   },
 });

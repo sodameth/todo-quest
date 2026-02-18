@@ -13,8 +13,10 @@ export default function FloatingText({ text, color, onDone }) {
   const translateY = useSharedValue(0);
 
   useEffect(() => {
-    opacity.value = withTiming(0, { duration: 900, easing: Easing.out(Easing.ease) });
     translateY.value = withTiming(-50, { duration: 900, easing: Easing.out(Easing.ease) });
+    opacity.value = withTiming(0, { duration: 900, easing: Easing.out(Easing.ease) }, () => {
+      if (onDone) runOnJS(onDone)();
+    });
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
