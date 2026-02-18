@@ -20,6 +20,7 @@ import {
   PET_POOL,
   rollLoot,
   CAT_COLORS,
+  ITEM_POOL,
 } from '../constants';
 import { loadSave, writeSave, loadTheme, saveTheme } from '../storage';
 import { darkTheme, lightTheme, Theme } from '../theme';
@@ -110,6 +111,7 @@ interface GameContextValue {
   useSkill: (skill: (typeof import('../constants').SKILLS)[0]) => void;
   useItem: (item: ItemType, idx: number) => void;
   unequipItem: (slot: 'atk' | 'def') => void;
+  craftItems: (uids: string[]) => void;
   setActivePet: (pet: (typeof PET_POOL)[0] | null) => void;
   setBattleLog: React.Dispatch<React.SetStateAction<string[]>>;
   setAchToast: (ach: (typeof ACHIEVEMENTS)[0] | null) => void;
@@ -201,6 +203,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const comboTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const floatId = useRef(0);
   const prevLevel = useRef(1);
+  const todosRef = useRef<Todo[]>([]);
+  const completingRef = useRef<Set<number>>(new Set());
 
   const theme = themeMode === 'dark' ? darkTheme : lightTheme;
 
@@ -249,6 +253,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     victoryDragons, combo, maxCombo, inventory, equipped, unlockedAch,
     hardCount, onTimeCount, pets, activePet, dailyQuest, dailyCompleted,
     dragonsKilled, skillUseCount]);
+
+  /* Keep todosRef in sync */
+  useEffect(() => { todosRef.current = todos; }, [todos]);
 
   /* Timer */
   useEffect(() => {
@@ -402,56 +409,65 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const confirmComplete = useCallback((todoId: number, proofUri: string | null) => {
-    setTodos(prev => prev.map(todo => {
-      if (todo.id !== todoId || todo.done) return todo;
-      const diff = DIFFICULTY[todo.difficulty];
-      const xpMult = (activePet?.effect?.xpBonus ? 1 + activePet.effect.xpBonus : 1) *
-        (combo >= 10 ? 2.0 : combo >= 5 ? 1.5 : combo >= 3 ? 1.2 : 1.0);
-      const xp = Math.floor(diff.xp * xpMult);
-      gainXp(xp);
-      setHero(h => ({ ...h, hp: Math.min(getHeroStats(h.level).maxHp, h.hp + diff.heal) }));
-      addFloat(`+${diff.heal} HP`, '#4ade80');
-      if (todo.difficulty === 'hard') setHardCount(h => h + 1);
-      const isOnTime = todo.deadline && Date.now() <= todo.deadline;
-      if (isOnTime) setOnTimeCount(o => o + 1);
-      const newCombo = combo + 1;
-      setCombo(newCombo);
-      setMaxCombo(m => Math.max(m, newCombo));
-      if (comboTimer.current) clearTimeout(comboTimer.current);
-      comboTimer.current = setTimeout(() => setCombo(0), 30 * 60 * 1000);
-      updateDaily('complete_any');
-      if (todo.difficulty === 'hard') updateDaily('complete_hard');
-      if (isOnTime) updateDaily('complete_ontime');
-      if (newCombo >= 3) updateDaily('combo_reach');
-      setTimeout(() => checkAch({ cc: completedCount + 1, mc: Math.max(maxCombo, newCombo) }), 100);
-      cancelNotification(todo.notificationId);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Prevent duplicate processing (e.g. double-tap or React Strict Mode double-invoke)
+    if (completingRef.current.has(todoId)) return;
+    const todo = todosRef.current.find(t => t.id === todoId);
+    if (!todo || todo.done) return;
 
-      // handle repeat
-      if (todo.repeat !== 'none') {
-        const now = Date.now();
-        const nextDeadline = todo.repeat === 'daily'
-          ? now + 24 * 60 * 60 * 1000
-          : now + 7 * 24 * 60 * 60 * 1000;
-        const resetTodo: Todo = {
-          ...todo,
-          done: false,
-          proofUri: null,
-          createdAt: now,
-          deadline: nextDeadline,
-          completedAt: now,
-          notificationId: null,
-        };
-        // Schedule notification for next occurrence
-        scheduleTodoNotification(resetTodo).then(nid => {
-          setTodos(p => p.map(t2 => t2.id === todoId ? { ...resetTodo, notificationId: nid } : t2));
-        });
-        return { ...todo, done: true, proofUri, completedAt: now };
-      }
+    completingRef.current.add(todoId);
 
-      return { ...todo, done: true, proofUri, completedAt: Date.now() };
-    }));
+    // All side effects outside the setTodos updater to avoid double-invoke issues
+    const diff = DIFFICULTY[todo.difficulty];
+    const xpMult = (activePet?.effect?.xpBonus ? 1 + activePet.effect.xpBonus : 1) *
+      (combo >= 10 ? 2.0 : combo >= 5 ? 1.5 : combo >= 3 ? 1.2 : 1.0);
+    const xp = Math.floor(diff.xp * xpMult);
+    const now = Date.now();
+    const isOnTime = todo.deadline && now <= todo.deadline;
+    const newCombo = combo + 1;
+
+    gainXp(xp);
+    setHero(h => ({ ...h, hp: Math.min(getHeroStats(h.level).maxHp, h.hp + diff.heal) }));
+    addFloat(`+${diff.heal} HP`, '#4ade80');
+    if (todo.difficulty === 'hard') setHardCount(h => h + 1);
+    if (isOnTime) setOnTimeCount(o => o + 1);
+    setCombo(newCombo);
+    setMaxCombo(m => Math.max(m, newCombo));
+    if (comboTimer.current) clearTimeout(comboTimer.current);
+    comboTimer.current = setTimeout(() => setCombo(0), 30 * 60 * 1000);
+    updateDaily('complete_any');
+    if (todo.difficulty === 'hard') updateDaily('complete_hard');
+    if (isOnTime) updateDaily('complete_ontime');
+    if (newCombo >= 3) updateDaily('combo_reach');
+    setTimeout(() => checkAch({ cc: completedCount + 1, mc: Math.max(maxCombo, newCombo) }), 100);
+    cancelNotification(todo.notificationId);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setCompletedCount(c => c + 1);
+
+    // handle repeat
+    if (todo.repeat !== 'none') {
+      const nextDeadline = todo.repeat === 'daily'
+        ? now + 24 * 60 * 60 * 1000
+        : now + 7 * 24 * 60 * 60 * 1000;
+      const resetTodo: Todo = {
+        ...todo,
+        done: false,
+        proofUri: null,
+        createdAt: now,
+        deadline: nextDeadline,
+        completedAt: now,
+        notificationId: null,
+      };
+      setTodos(prev => prev.map(t => t.id === todoId ? { ...t, done: true, proofUri, completedAt: now } : t));
+      // Schedule notification for next occurrence, then reset
+      scheduleTodoNotification(resetTodo).then(nid => {
+        setTodos(p => p.map(t2 => t2.id === todoId ? { ...resetTodo, notificationId: nid } : t2));
+        completingRef.current.delete(todoId);
+      });
+      return;
+    }
+
+    setTodos(prev => prev.map(t => t.id === todoId ? { ...t, done: true, proofUri, completedAt: now } : t));
+    completingRef.current.delete(todoId);
   }, [activePet, combo, maxCombo, completedCount, gainXp, addFloat, updateDaily, checkAch]);
 
   const confirmUndo = useCallback((todoId: number, xpLost: number) => {
@@ -625,6 +641,37 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     addFloat(`${item.name} 해제`, '#8b7fa0');
   }, [equipped, addFloat]);
 
+  const craftItems = useCallback((uids: string[]) => {
+    if (uids.length !== 3) return;
+    const crafting = uids.map(uid => inventory.find(i => i.uid === uid)).filter(Boolean) as ItemType[];
+    if (crafting.length !== 3) return;
+    const rarity = crafting[0].rarity;
+    if (!crafting.every(i => i.rarity === rarity)) return;
+
+    const nextRarity = rarity === 'common' ? 'uncommon' : rarity === 'uncommon' ? 'rare' : 'legendary';
+    const pool = ITEM_POOL.filter(x => x.rarity === nextRarity);
+    const result = pool.length > 0
+      ? pool[Math.floor(Math.random() * pool.length)]
+      : ITEM_POOL.filter(x => x.rarity === 'rare')[0];
+
+    const newItem: ItemType = {
+      ...result,
+      uid: `craft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    };
+
+    setInventory(inv => {
+      let remaining = [...inv];
+      for (const uid of uids) {
+        const idx = remaining.findIndex(i => i.uid === uid);
+        if (idx !== -1) remaining.splice(idx, 1);
+      }
+      return [...remaining, newItem];
+    });
+
+    addFloat(`✨ ${newItem.emoji} ${newItem.name} 합성!`, '#fbbf24');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [inventory, addFloat]);
+
   const setActivePet = useCallback((pet: (typeof PET_POOL)[0] | null) => {
     setActivePetState(pet);
     if (pet) addFloat(`${pet.emoji} ${pet.name} 활성화!`, pet.color);
@@ -654,7 +701,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     skillCooldowns, activeBuffs, skillUseCount, battleLog, achToast, theme: theme as any, themeMode, now, floats,
     setTodos, setCategories, addTodo, deleteTodo, startComplete,
     confirmComplete, confirmUndo, addCategory, deleteCategory,
-    attack, useSkill, useItem, unequipItem, setActivePet, setBattleLog,
+    attack, useSkill, useItem, unequipItem, craftItems, setActivePet, setBattleLog,
     setAchToast, toggleTheme, restartAfterVictory, addFloat,
   };
 

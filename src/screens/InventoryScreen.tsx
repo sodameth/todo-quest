@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, SafeAreaView, Alert,
 } from 'react-native';
 import { useGame } from '../context/GameContext';
 import { ProgressBar } from '../components/shared';
@@ -10,8 +10,29 @@ import { RARITY_COLOR, getHeroStats, getHeroTier, PET_POOL } from '../constants'
 export default function InventoryScreen() {
   const {
     hero, inventory, equipped, pets, activePet,
-    useItem, unequipItem, setActivePet, theme,
+    useItem, unequipItem, craftItems, setActivePet, theme,
   } = useGame();
+
+  const [craftSelected, setCraftSelected] = useState<string[]>([]);
+
+  const toggleCraftSelect = (uid: string) => {
+    setCraftSelected(prev => {
+      if (prev.includes(uid)) return prev.filter(u => u !== uid);
+      if (prev.length >= 3) return prev;
+      return [...prev, uid];
+    });
+  };
+
+  const selectedItems = craftSelected.map(uid => inventory.find(i => i.uid === uid)).filter(Boolean) as any[];
+  const allSameRarity = selectedItems.length === 3 && selectedItems.every(i => i.rarity === selectedItems[0].rarity);
+  const craftRarity = allSameRarity ? selectedItems[0].rarity : null;
+  const nextRarity = craftRarity === 'common' ? 'uncommon' : craftRarity === 'uncommon' ? 'rare' : craftRarity === 'rare' ? 'legendary' : null;
+
+  const handleCraft = () => {
+    if (!allSameRarity) return;
+    craftItems(craftSelected);
+    setCraftSelected([]);
+  };
 
   const stats = getHeroStats(hero.level);
   const equipAtk = equipped.atk?.effect?.atk || 0;
@@ -115,7 +136,23 @@ export default function InventoryScreen() {
 
         {/* Inventory */}
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
-          <Text style={[styles.sectionTitle, { color: '#f59e0b' }]}>🎒 아이템 ({inventory.length})</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <Text style={[styles.sectionTitle, { color: '#f59e0b', marginBottom: 0 }]}>🎒 아이템 ({inventory.length})</Text>
+            {craftSelected.length > 0 && (
+              <TouchableOpacity onPress={() => setCraftSelected([])}>
+                <Text style={{ fontSize: 11, color: theme.textMuted }}>선택 취소</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {craftSelected.length > 0 && (
+            <Text style={[styles.craftHint, { color: theme.textMuted }]}>
+              {craftSelected.length === 3
+                ? allSameRarity
+                  ? `✨ ${craftRarity} × 3 → ${nextRarity} 아이템 합성 가능!`
+                  : '⚠️ 같은 등급 3개를 선택하세요'
+                : `🔨 합성할 아이템 ${craftSelected.length}/3 선택됨`}
+            </Text>
+          )}
           {inventory.length === 0 ? (
             <Text style={[styles.emptyText, { color: theme.textDim }]}>전리품이 없습니다. 드래곤을 처치하세요!</Text>
           ) : (
@@ -124,7 +161,7 @@ export default function InventoryScreen() {
                 const order: Record<string, number> = { equip_atk: 0, equip_def: 1, consumable: 2 };
                 return (order[a.type] || 9) - (order[b.type] || 9);
               })
-              .map((item, sortedIdx) => {
+              .map((item) => {
                 const origIdx = inventory.indexOf(item);
                 const isEquip = item.type === 'equip_atk' || item.type === 'equip_def';
                 const curEquip = item.type === 'equip_atk' ? equipped.atk : item.type === 'equip_def' ? equipped.def : null;
@@ -133,9 +170,22 @@ export default function InventoryScreen() {
                     ? (item.effect.atk - (curEquip?.effect?.atk || 0))
                     : (item.effect.def - (curEquip?.effect?.def || 0)))
                   : 0;
+                const isCraftSelected = craftSelected.includes(item.uid);
 
                 return (
-                  <View key={item.uid || origIdx} style={[styles.itemRow, { borderColor: (RARITY_COLOR[item.rarity] || '#fff') + '22' }]}>
+                  <TouchableOpacity
+                    key={item.uid || origIdx}
+                    style={[
+                      styles.itemRow,
+                      { borderColor: isCraftSelected ? '#fbbf24' : (RARITY_COLOR[item.rarity] || '#fff') + '22' },
+                      isCraftSelected && { backgroundColor: 'rgba(251,191,36,0.08)' },
+                    ]}
+                    onLongPress={() => toggleCraftSelect(item.uid)}
+                    delayLongPress={300}
+                  >
+                    {isCraftSelected && (
+                      <View style={styles.craftCheckBadge}><Text style={{ fontSize: 10, color: '#fbbf24', fontWeight: '900' }}>✓</Text></View>
+                    )}
                     <Text style={styles.itemEmoji}>{item.emoji}</Text>
                     <View style={styles.itemInfo}>
                       <View style={styles.itemNameRow}>
@@ -162,11 +212,43 @@ export default function InventoryScreen() {
                         {item.type === 'consumable' ? '사용' : curEquip ? '교체' : '장착'}
                       </Text>
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
           )}
         </View>
+
+        {/* Crafting Panel */}
+        {inventory.length >= 3 && (
+          <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: allSameRarity ? 'rgba(251,191,36,0.4)' : theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: '#fbbf24' }]}>🔨 아이템 합성</Text>
+            <Text style={[styles.craftDesc, { color: theme.textMuted }]}>아이템을 길게 눌러 합성 재료로 선택하세요.</Text>
+            <View style={styles.craftRecipes}>
+              {[
+                { from: 'common', to: 'uncommon', label: '일반 3개 → 고급', fromColor: '#9ca3af', toColor: '#60a5fa' },
+                { from: 'uncommon', to: 'rare', label: '고급 3개 → 희귀', fromColor: '#60a5fa', toColor: '#a78bfa' },
+                { from: 'rare', to: 'legendary', label: '희귀 3개 → 전설', fromColor: '#a78bfa', toColor: '#fbbf24' },
+              ].map(r => {
+                const count = inventory.filter(i => i.rarity === r.from).length;
+                return (
+                  <View key={r.from} style={[styles.recipeRow, { borderColor: theme.border }]}>
+                    <Text style={[styles.recipeText, { color: r.fromColor }]}>{r.label}</Text>
+                    <Text style={[styles.recipeCount, { color: count >= 3 ? '#4ade80' : theme.textDim }]}>{count}/3</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <TouchableOpacity
+              style={[styles.craftBtn, !allSameRarity && { opacity: 0.4 }]}
+              onPress={handleCraft}
+              disabled={!allSameRarity}
+            >
+              <Text style={styles.craftBtnText}>
+                {allSameRarity ? `✨ 합성하기 (${craftRarity} → ${nextRarity})` : '재료 3개를 선택하세요'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -219,4 +301,24 @@ const styles = StyleSheet.create({
   statDiff: { fontSize: 10, fontWeight: '700', marginTop: 2 },
   useBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   useBtnText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+  craftHint: { fontSize: 11, fontWeight: '700', marginBottom: 8, textAlign: 'center', padding: 6, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8 },
+  craftCheckBadge: {
+    position: 'absolute', top: 6, left: 6, zIndex: 10,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#fbbf24', alignItems: 'center', justifyContent: 'center',
+  },
+  craftDesc: { fontSize: 11, marginBottom: 10 },
+  craftRecipes: { gap: 6, marginBottom: 12 },
+  recipeRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  recipeText: { fontSize: 11, fontWeight: '700' },
+  recipeCount: { fontSize: 11, fontWeight: '900' },
+  craftBtn: {
+    backgroundColor: '#fbbf24', borderRadius: 12, padding: 12,
+    alignItems: 'center',
+  },
+  craftBtnText: { fontSize: 13, fontWeight: '900', color: '#1a1028' },
 });

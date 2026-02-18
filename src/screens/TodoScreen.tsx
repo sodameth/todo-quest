@@ -250,8 +250,8 @@ export default function TodoScreen() {
         {/* Category Filter */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catFilter} contentContainerStyle={styles.catFilterContent}>
           {[
-            { id: 'all', name: `전체 (${todos.length})`, emoji: '📋', color: theme.textMuted },
-            { id: 'none', name: `미분류 (${todos.filter(t => !t.category).length})`, emoji: '📌', color: theme.textMuted },
+            { id: 'all', name: `📋 전체 (${todos.length})`, emoji: '📋', color: theme.textMuted },
+            { id: 'none', name: `📌 미분류 (${todos.filter(t => !t.category).length})`, emoji: '📌', color: theme.textMuted },
             ...categories.map(c => ({ ...c, name: `${c.emoji} ${c.name} (${todos.filter(t => t.category === c.id).length})` })),
           ].map(cat => (
             <TouchableOpacity
@@ -434,9 +434,9 @@ export default function TodoScreen() {
                 </View>
               ))}
               <View style={styles.newCatRow}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: 60 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: 140 }}>
                   <View style={{ flexDirection: 'row', gap: 4 }}>
-                    {CAT_EMOJIS.slice(0, 5).map(e => (
+                    {CAT_EMOJIS.map(e => (
                       <TouchableOpacity key={e} onPress={() => setNewCatEmoji(e)}
                         style={[styles.emojiBtn, newCatEmoji === e && { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
                         <Text style={{ fontSize: 18 }}>{e}</Text>
@@ -522,10 +522,11 @@ const styles = StyleSheet.create({
   dailyDesc: { fontSize: 12 },
   dailyProgress: { fontSize: 14, fontWeight: '900' },
   catFilter: { marginBottom: 6 },
-  catFilterContent: { paddingHorizontal: 12, gap: 6, flexDirection: 'row' },
+  catFilterContent: { paddingHorizontal: 12, gap: 6, flexDirection: 'row', alignItems: 'center' },
   catFilterBtn: {
     paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8,
-    borderWidth: 1, borderColor: 'transparent',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   catFilterText: { fontSize: 11, fontWeight: '700' },
   listContent: { paddingHorizontal: 12, paddingBottom: 100 },

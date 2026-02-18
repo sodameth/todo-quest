@@ -7,8 +7,10 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
+  Image,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY, RARITY_COLOR } from '../constants';
 
@@ -175,12 +177,39 @@ export const ProofModal: React.FC<{
 }> = ({ visible, todo, onConfirm, onClose }) => {
   const { theme } = useGame();
   const [showQR, setShowQR] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   if (!todo) return null;
   const d = DIFFICULTY[todo.difficulty as keyof typeof DIFFICULTY];
 
   const handleClose = () => {
     setShowQR(false);
+    setPhotoUri(null);
     onClose();
+  };
+
+  const handlePickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
   };
 
   return (
@@ -204,12 +233,39 @@ export const ProofModal: React.FC<{
               </View>
             ) : null}
 
-            <TouchableOpacity
-              style={[styles.qrScanBtn, { borderColor: theme.border }]}
-              onPress={() => setShowQR(true)}
-            >
-              <Text style={[styles.qrScanBtnText, { color: theme.textMuted }]}>📷 QR 스캔으로 완료</Text>
-            </TouchableOpacity>
+            {/* Photo upload */}
+            {photoUri ? (
+              <View style={styles.photoPreviewContainer}>
+                <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => setPhotoUri(null)}>
+                  <Text style={styles.photoRemoveBtnText}>✕ 사진 제거</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.photoRow}>
+                <TouchableOpacity
+                  style={[styles.photoBtn, { borderColor: theme.border, backgroundColor: theme.bgCardSecondary }]}
+                  onPress={handleTakePhoto}
+                >
+                  <Text style={styles.photoBtnEmoji}>📸</Text>
+                  <Text style={[styles.photoBtnText, { color: theme.textMuted }]}>카메라</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.photoBtn, { borderColor: theme.border, backgroundColor: theme.bgCardSecondary }]}
+                  onPress={handlePickPhoto}
+                >
+                  <Text style={styles.photoBtnEmoji}>🖼️</Text>
+                  <Text style={[styles.photoBtnText, { color: theme.textMuted }]}>갤러리</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.photoBtn, { borderColor: theme.border, backgroundColor: theme.bgCardSecondary }]}
+                  onPress={() => setShowQR(true)}
+                >
+                  <Text style={styles.photoBtnEmoji}>📷</Text>
+                  <Text style={[styles.photoBtnText, { color: theme.textMuted }]}>QR 스캔</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.modalBtns}>
               <TouchableOpacity style={[styles.modalBtn, { borderColor: theme.border }]} onPress={handleClose}>
@@ -217,7 +273,7 @@ export const ProofModal: React.FC<{
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, styles.modalBtnPrimary]}
-                onPress={() => onConfirm(null)}
+                onPress={() => { onConfirm(photoUri); setPhotoUri(null); }}
               >
                 <Text style={styles.modalBtnPrimaryText}>완료하기!</Text>
               </TouchableOpacity>
@@ -512,14 +568,17 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 14,
   },
-  qrScanBtn: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    alignItems: 'center',
-    marginBottom: 10,
+  photoRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  photoBtn: {
+    flex: 1, borderWidth: 1, borderRadius: 10, padding: 10,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
   },
-  qrScanBtnText: { fontSize: 13, fontWeight: '700' },
+  photoBtnEmoji: { fontSize: 22 },
+  photoBtnText: { fontSize: 10, fontWeight: '700' },
+  photoPreviewContainer: { marginBottom: 12, alignItems: 'center' },
+  photoPreview: { width: '100%', height: 140, borderRadius: 12, marginBottom: 6 },
+  photoRemoveBtn: { padding: 6 },
+  photoRemoveBtnText: { fontSize: 12, color: '#f87171', fontWeight: '700' },
   // QR Scanner Modal styles
   qrContainer: {
     flex: 1,

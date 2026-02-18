@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,13 +19,19 @@ import { DRAGON_STAGES, getHeroStats, getHeroTier, SKILLS } from '../constants';
 export default function BattleScreen() {
   const {
     hero, dragonStage, dragonHp, battleLog, skillCooldowns, activeBuffs,
-    attack, useSkill, theme,
+    attack, useSkill, theme, activePet,
   } = useGame();
 
   const logRef = useRef<ScrollView>(null);
   const heroShake = useRef(new Animated.Value(0)).current;
   const dragonShake = useRef(new Animated.Value(0)).current;
+  const dragonFlash = useRef(new Animated.Value(0)).current;
+  const attackBtnScale = useRef(new Animated.Value(1)).current;
+  const healPulse = useRef(new Animated.Value(1)).current;
+  const petBounce = useRef(new Animated.Value(0)).current;
+  const petGlow = useRef(new Animated.Value(0)).current;
   const prevHpRef = useRef(hero.hp);
+  const prevDragonHpRef = useRef(dragonHp);
 
   const stats = getHeroStats(hero.level);
   const dragon = DRAGON_STAGES[dragonStage];
@@ -46,6 +52,78 @@ export default function BattleScreen() {
     ]).start();
   };
 
+  const shakeDragon = () => {
+    Animated.sequence([
+      Animated.timing(dragonShake, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(dragonShake, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(dragonShake, { toValue: -7, duration: 50, useNativeDriver: true }),
+      Animated.timing(dragonShake, { toValue: 7, duration: 50, useNativeDriver: true }),
+      Animated.timing(dragonShake, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const flashDragon = () => {
+    Animated.sequence([
+      Animated.timing(dragonFlash, { toValue: 0.6, duration: 80, useNativeDriver: true }),
+      Animated.timing(dragonFlash, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const animateAttackBtn = () => {
+    Animated.sequence([
+      Animated.timing(attackBtnScale, { toValue: 0.92, duration: 80, useNativeDriver: true }),
+      Animated.timing(attackBtnScale, { toValue: 1.05, duration: 100, useNativeDriver: true }),
+      Animated.timing(attackBtnScale, { toValue: 1, duration: 80, useNativeDriver: true }),
+    ]).start();
+  };
+
+  // Start heal pulse loop
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(healPulse, { toValue: 1.1, duration: 700, useNativeDriver: true }),
+        Animated.timing(healPulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  // Pet bounce animation loop
+  useEffect(() => {
+    if (!activePet) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(petBounce, { toValue: -6, duration: 400, useNativeDriver: true }),
+        Animated.timing(petBounce, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [activePet]);
+
+  // Pet glow pulse
+  useEffect(() => {
+    if (!activePet) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(petGlow, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(petGlow, { toValue: 0.3, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [activePet]);
+
+  // Pet attack flash when dragon takes damage
+  const flashPet = () => {
+    if (!activePet) return;
+    Animated.sequence([
+      Animated.timing(petGlow, { toValue: 1, duration: 100, useNativeDriver: true }),
+      Animated.timing(petGlow, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+    ]).start();
+  };
+
   // 피격 시 흔들림 효과
   useEffect(() => {
     if (hero.hp < prevHpRef.current) {
@@ -54,8 +132,19 @@ export default function BattleScreen() {
     prevHpRef.current = hero.hp;
   }, [hero.hp]);
 
+  // 드래곤 피격 시 흔들림 + 플래시
+  useEffect(() => {
+    if (dragonHp < prevDragonHpRef.current) {
+      shakeDragon();
+      flashDragon();
+      flashPet();
+    }
+    prevDragonHpRef.current = dragonHp;
+  }, [dragonHp]);
+
   const handleAttack = () => {
     if (!canBattle) return;
+    animateAttackBtn();
     attack(); // GameContext 내부에서 Haptics.Medium 처리
   };
 
@@ -87,11 +176,25 @@ export default function BattleScreen() {
         <View style={styles.combatants}>
           {/* Hero */}
           <Animated.View style={[styles.heroSide, { transform: [{ translateX: heroShake }] }]}>
-            <HeroSVG tier={heroTier} size={85} hpRatio={hero.hp / stats.maxHp} />
+            <View style={styles.heroWithPet}>
+              <HeroSVG tier={heroTier} size={85} hpRatio={hero.hp / stats.maxHp} />
+              {activePet && (
+                <Animated.View style={[
+                  styles.petCompanion,
+                  { transform: [{ translateY: petBounce }] },
+                ]}>
+                  <Animated.View style={[
+                    styles.petGlowRing,
+                    { borderColor: activePet.color, opacity: petGlow },
+                  ]} />
+                  <Text style={styles.petCompanionEmoji}>{activePet.emoji}</Text>
+                </Animated.View>
+              )}
+            </View>
             <View style={styles.hpBarSmall}>
               <ProgressBar value={hero.hp} max={stats.maxHp} color="#4ade80" height={7} label={`${hero.hp}`} />
             </View>
-            <Text style={[styles.combatantName, { color: '#4ade80' }]}>용사</Text>
+            <Text style={[styles.combatantName, { color: '#4ade80' }]}>용사{activePet ? ` + ${activePet.name}` : ''}</Text>
           </Animated.View>
 
           {/* VS */}
@@ -103,14 +206,17 @@ export default function BattleScreen() {
           </View>
 
           {/* Dragon */}
-          <View style={styles.dragonSide}>
-            <DragonSVG stage={dragonStage} size={110} />
+          <Animated.View style={[styles.dragonSide, { transform: [{ translateX: dragonShake }] }]}>
+            <View style={styles.dragonWrapper}>
+              <DragonSVG stage={dragonStage} size={110} />
+              <Animated.View style={[styles.dragonHitFlash, { opacity: dragonFlash }]} pointerEvents="none" />
+            </View>
             <View style={styles.hpBarSmall}>
               <ProgressBar value={dragonHp} max={dragon.hp} color="#ef4444" height={7} label={`${dragonHp}`} />
             </View>
             <Text style={[styles.combatantName, { color: '#ef4444' }]}>{dragon.name}</Text>
             <Text style={[styles.stageLabel, { color: theme.textMuted }]}>({dragonStage + 1}/{DRAGON_STAGES.length})</Text>
-          </View>
+          </Animated.View>
         </View>
 
         {isDead && (
@@ -130,38 +236,51 @@ export default function BattleScreen() {
           const isActive = (skill.id === 'crit' && activeBuffs.crit) ||
             (skill.id === 'shield' && activeBuffs.shield) ||
             (skill.id === 'fury' && activeBuffs.fury > 0);
+          const isAvailable = cd === 0 && !isDead;
+          const isHealPulsing = skill.id === 'heal' && isAvailable && hero.hp < getHeroStats(hero.level).maxHp;
           return (
-            <TouchableOpacity
-              key={skill.id}
-              style={[
-                styles.skillBtn,
-                { borderColor: isActive ? skill.color + '88' : cd > 0 ? 'transparent' : skill.color + '33' },
-                isActive && { backgroundColor: skill.color + '22' },
-                cd > 0 && { opacity: 0.5 },
-              ]}
-              onPress={() => cd === 0 && handleSkill(skill)}
-              disabled={cd > 0 || isDead}
-            >
-              <Text style={styles.skillEmoji}>{skill.emoji}</Text>
-              <Text style={[styles.skillName, { color: cd > 0 ? theme.textDim : skill.color }]}>{skill.name}</Text>
-              <Text style={[styles.skillDesc, { color: theme.textMuted }]}>{skill.desc}</Text>
-              {cd > 0 && <Text style={styles.skillCd}>CD:{cd}</Text>}
-            </TouchableOpacity>
+            <Animated.View key={skill.id} style={isHealPulsing ? { transform: [{ scale: healPulse }] } : undefined}>
+              <TouchableOpacity
+                style={[
+                  styles.skillBtn,
+                  { borderColor: isActive ? skill.color + '88' : cd > 0 ? 'transparent' : skill.color + '55' },
+                  isActive && { backgroundColor: skill.color + '22' },
+                  isAvailable && !isActive && { backgroundColor: skill.color + '11', borderWidth: 2 },
+                  isHealPulsing && {
+                    shadowColor: skill.color,
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.8,
+                    shadowRadius: 8,
+                    elevation: 6,
+                  },
+                  cd > 0 && { opacity: 0.4 },
+                ]}
+                onPress={() => cd === 0 && handleSkill(skill)}
+                disabled={cd > 0 || isDead}
+              >
+                <Text style={styles.skillEmoji}>{skill.emoji}</Text>
+                <Text style={[styles.skillName, { color: cd > 0 ? theme.textDim : skill.color }]}>{skill.name}</Text>
+                <Text style={[styles.skillDesc, { color: theme.textMuted }]}>{skill.desc}</Text>
+                {cd > 0 && <Text style={styles.skillCd}>CD:{cd}</Text>}
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </ScrollView>
 
       {/* Attack Button */}
-      <TouchableOpacity
-        style={[styles.attackBtn, isDead && styles.attackBtnDisabled]}
-        onPress={handleAttack}
-        disabled={isDead}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.attackBtnText}>
-          {isDead ? '💔 쓰러짐...' : '⚔️ 공격하기!'}
-        </Text>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: attackBtnScale }] }}>
+        <TouchableOpacity
+          style={[styles.attackBtn, isDead && styles.attackBtnDisabled]}
+          onPress={handleAttack}
+          disabled={isDead}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.attackBtnText}>
+            {isDead ? '💔 쓰러짐...' : '⚔️ 공격하기!'}
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* Dragon Info */}
       <View style={[styles.dragonInfo, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
@@ -210,7 +329,23 @@ const styles = StyleSheet.create({
   },
   combatants: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 150 },
   heroSide: { alignItems: 'center', flex: 1 },
+  heroWithPet: { position: 'relative', alignItems: 'center' },
+  petCompanion: {
+    position: 'absolute', bottom: 0, right: -8,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  petGlowRing: {
+    position: 'absolute', width: 38, height: 38,
+    borderRadius: 19, borderWidth: 2,
+  },
+  petCompanionEmoji: { fontSize: 26 },
   dragonSide: { alignItems: 'center', flex: 1 },
+  dragonWrapper: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  dragonHitFlash: {
+    position: 'absolute', inset: 0,
+    backgroundColor: '#ff4444',
+    borderRadius: 20,
+  },
   hpBarSmall: { width: 90, marginTop: 4 },
   combatantName: { fontSize: 11, fontWeight: '700', marginTop: 2 },
   stageLabel: { fontSize: 9 },
