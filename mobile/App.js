@@ -1,12 +1,10 @@
-import React, { useMemo, useEffect, useCallback } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
+import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useGameState } from './src/hooks/useGameState';
 import { useTimer } from './src/hooks/useTimer';
-
-SplashScreen.preventAutoHideAsync();
 import HeroCard from './src/components/HeroCard';
 import TabBar from './src/components/TabBar';
 import DailyQuestBanner from './src/components/DailyQuestBanner';
@@ -21,6 +19,8 @@ import LootModal from './src/components/modals/LootModal';
 import AchievementToast from './src/components/modals/AchievementToast';
 import LevelUpEffect from './src/components/modals/LevelUpEffect';
 import { Colors } from './src/theme/colors';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Stars() {
   const stars = useMemo(() =>
@@ -140,17 +140,31 @@ class ErrorBoundary extends React.Component {
 }
 
 export default function App() {
-  const [fontsLoaded, fontError] = useFonts({
-    'PressStart2P': require('./assets/fonts/PressStart2P-Regular.ttf'),
-  });
+  const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+    async function prepare() {
+      try {
+        await Font.loadAsync({
+          'PressStart2P': require('./assets/fonts/PressStart2P-Regular.ttf'),
+        });
+      } catch (e) {
+        console.warn('Font load failed:', e);
+      } finally {
+        setAppReady(true);
+        SplashScreen.hideAsync().catch(() => {});
+      }
     }
-  }, [fontsLoaded, fontError]);
+    prepare();
+  }, []);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!appReady) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0f0c18', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#facc15', fontSize: 16 }}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <ErrorBoundary>
