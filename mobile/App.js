@@ -12,6 +12,7 @@ import TodoScreen from './src/screens/TodoScreen';
 import BattleScreen from './src/screens/BattleScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import AchievementsScreen from './src/screens/AchievementsScreen';
+import StatsScreen from './src/screens/StatsScreen';
 import VictoryScreen from './src/screens/VictoryScreen';
 import ProofModal from './src/components/modals/ProofModal';
 import UndoModal from './src/components/modals/UndoModal';
@@ -115,6 +116,7 @@ function TodoRPG() {
           {game.screen === 'battle' && <BattleScreen game={game} />}
           {game.screen === 'inventory' && <InventoryScreen game={game} />}
           {game.screen === 'achievements' && <AchievementsScreen game={game} />}
+          {game.screen === 'stats' && <StatsScreen game={game} />}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

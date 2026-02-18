@@ -17,6 +17,7 @@ export default function TabBar({ game }) {
     },
     { id: 'inventory', label: `🎒 ${inventory.length}`, color: '#f59e0b' },
     { id: 'achievements', label: `🏅 ${unlockedAch.length}`, color: '#a78bfa' },
+    { id: 'stats', label: '📊 스탯', color: '#4ade80' },
   ];
 
   return (
