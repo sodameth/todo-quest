@@ -1,8 +1,58 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import Slider from '@react-native-community/slider';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, PanResponder } from 'react-native';
 import { DEADLINE_PRESETS } from '../constants/deadlinePresets';
 import { Colors } from '../theme/colors';
+
+function JSSlider({ minimumValue, maximumValue, step, value, onValueChange, minimumTrackTintColor, maximumTrackTintColor, thumbTintColor, style }) {
+  const trackRef = useRef(null);
+  const trackWidth = useRef(0);
+
+  const fraction = (value - minimumValue) / (maximumValue - minimumValue);
+
+  const valueFromX = (x) => {
+    const ratio = Math.max(0, Math.min(1, x / trackWidth.current));
+    let val = minimumValue + ratio * (maximumValue - minimumValue);
+    if (step) val = Math.round(val / step) * step;
+    return Math.max(minimumValue, Math.min(maximumValue, val));
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const x = e.nativeEvent.locationX;
+        onValueChange(valueFromX(x));
+      },
+      onPanResponderMove: (e) => {
+        const x = e.nativeEvent.locationX;
+        onValueChange(valueFromX(x));
+      },
+    })
+  ).current;
+
+  return (
+    <View
+      style={[{ height: 32, justifyContent: 'center' }, style]}
+      ref={trackRef}
+      onLayout={(e) => { trackWidth.current = e.nativeEvent.layout.width; }}
+      {...panResponder.panHandlers}
+    >
+      <View style={{ height: 4, borderRadius: 2, backgroundColor: maximumTrackTintColor || 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+        <View style={{ width: `${fraction * 100}%`, height: '100%', backgroundColor: minimumTrackTintColor || '#fbbf24', borderRadius: 2 }} />
+      </View>
+      <View style={{
+        position: 'absolute',
+        left: `${fraction * 100}%`,
+        marginLeft: -10,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: thumbTintColor || '#fbbf24',
+      }} />
+    </View>
+  );
+}
 
 function formatMinutes(m) {
   const h = Math.floor(m / 60);
@@ -73,7 +123,7 @@ export default function TimeSettingInput({ value, onChange }) {
       </View>
 
       {/* Slider */}
-      <Slider
+      <JSSlider
         style={styles.slider}
         minimumValue={1}
         maximumValue={1440}
