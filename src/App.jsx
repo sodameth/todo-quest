@@ -634,7 +634,7 @@ export default function TodoRPG(){
     {/* ═══ TODO ═══ */}
     {screen==="todo"&&(<div>
       {/* Category Filter Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:10,overflowX:"auto",paddingBottom:4}}>
+      <div style={{display:"flex",gap:4,marginBottom:6,overflowX:"auto",paddingBottom:2}}>
         <button onClick={()=>setFilterCat("all")} style={{padding:"5px 12px",borderRadius:8,border:"none",background:filterCat==="all"?"rgba(255,255,255,0.12)":"rgba(255,255,255,0.03)",color:filterCat==="all"?"#e8e0f0":"#5a4f6b",fontWeight:700,fontSize:"0.65rem",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0}}>
           전체 ({todos.length})
         </button>
@@ -650,22 +650,18 @@ export default function TodoRPG(){
       </div>
 
       {/* Input Area */}
-      <div style={{background:"rgba(255,255,255,0.04)",borderRadius:14,padding:14,marginBottom:12,border:"1px solid rgba(255,255,255,0.06)"}}>
-        <div style={{display:"flex",gap:6,marginBottom:8}}>
+      <div style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:10,marginBottom:10,border:"1px solid rgba(255,255,255,0.06)"}}>
+        <div style={{display:"flex",gap:6,marginBottom:6}}>
           <input type="text" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTodo()} placeholder="새로운 퀘스트를 입력하세요..." style={{flex:1,padding:"9px 12px",borderRadius:10,border:"1px solid rgba(255,255,255,0.1)",background:"rgba(0,0,0,0.3)",color:"#e8e0f0",fontSize:"0.85rem",fontFamily:"inherit",outline:"none"}}/>
           <button onClick={addTodo} className="btn" style={{padding:"9px 16px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:"0.85rem",fontFamily:"inherit",whiteSpace:"nowrap"}}>+</button>
         </div>
         {/* Category selector for new todo */}
-        <div style={{marginBottom:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:5}}>
-            <span style={{fontSize:"0.6rem",color:"#8b7fa0"}}>📂 카테고리</span>
-            {categories.length>0&&<button onClick={()=>setShowCatManager(!showCatManager)} style={{fontSize:"0.5rem",color:"#5a4f6b",background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,padding:"1px 6px",cursor:"pointer",fontFamily:"inherit",marginLeft:"auto"}}>⚙️ 관리</button>}
-          </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-            <button onClick={()=>setSelectedCat(null)} style={{padding:"4px 10px",borderRadius:7,border:"none",background:selectedCat===null?"rgba(255,255,255,0.12)":"transparent",color:selectedCat===null?"#e8e0f0":"#5a4f6b",fontWeight:700,fontSize:"0.6rem",cursor:"pointer",fontFamily:"inherit",outline:selectedCat===null?"1.5px solid rgba(255,255,255,0.2)":"1.5px solid transparent"}}>없음</button>
-            {categories.map(cat=>(<button key={cat.id} onClick={()=>setSelectedCat(cat.id)} style={{padding:"4px 10px",borderRadius:7,border:"none",background:selectedCat===cat.id?`${cat.color}22`:"transparent",color:selectedCat===cat.id?cat.color:"#5a4f6b",fontWeight:700,fontSize:"0.6rem",cursor:"pointer",fontFamily:"inherit",outline:selectedCat===cat.id?`1.5px solid ${cat.color}44`:"1.5px solid transparent",transition:"all 0.15s"}}>{cat.emoji} {cat.name}</button>))}
-            <button onClick={()=>setShowCatManager(true)} style={{width:26,height:26,borderRadius:7,border:"1.5px dashed rgba(255,255,255,0.15)",background:"transparent",color:"#5a4f6b",fontSize:"0.85rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}} title="카테고리 추가">+</button>
-          </div>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",marginBottom:4}}>
+          <span style={{fontSize:"0.55rem",color:"#8b7fa0",flexShrink:0}}>📂</span>
+          <button onClick={()=>setSelectedCat(null)} style={{padding:"3px 8px",borderRadius:6,border:"none",background:selectedCat===null?"rgba(255,255,255,0.12)":"transparent",color:selectedCat===null?"#e8e0f0":"#5a4f6b",fontWeight:700,fontSize:"0.6rem",cursor:"pointer",fontFamily:"inherit",outline:selectedCat===null?"1.5px solid rgba(255,255,255,0.2)":"1.5px solid transparent"}}>없음</button>
+          {categories.map(cat=>(<button key={cat.id} onClick={()=>setSelectedCat(cat.id)} style={{padding:"3px 8px",borderRadius:6,border:"none",background:selectedCat===cat.id?`${cat.color}22`:"transparent",color:selectedCat===cat.id?cat.color:"#5a4f6b",fontWeight:700,fontSize:"0.6rem",cursor:"pointer",fontFamily:"inherit",outline:selectedCat===cat.id?`1.5px solid ${cat.color}44`:"1.5px solid transparent",transition:"all 0.15s"}}>{cat.emoji} {cat.name}</button>))}
+          <button onClick={()=>setShowCatManager(true)} style={{width:22,height:22,borderRadius:6,border:"1.5px dashed rgba(255,255,255,0.15)",background:"transparent",color:"#5a4f6b",fontSize:"0.75rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}} title="카테고리 추가">+</button>
+          {categories.length>0&&<button onClick={()=>setShowCatManager(!showCatManager)} style={{fontSize:"0.5rem",color:"#5a4f6b",background:"none",border:"1px solid rgba(255,255,255,0.08)",borderRadius:6,padding:"1px 5px",cursor:"pointer",fontFamily:"inherit",marginLeft:"auto"}}>⚙️</button>}
         </div>
         {/* Inline Category Add / Manager */}
         {showCatManager&&<div style={{background:"rgba(0,0,0,0.2)",borderRadius:10,padding:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.06)"}}>
@@ -693,8 +689,8 @@ export default function TodoRPG(){
             <button onClick={addCategory} className="btn" style={{padding:"7px 14px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",fontWeight:700,fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>추가</button>
           </div>
         </div>}
-        <div style={{display:"flex",gap:4,marginBottom:8}}>
-          {Object.entries(DIFFICULTY).map(([key,d])=>(<button key={key} onClick={()=>setDifficulty(key)} style={{flex:1,padding:"5px 0",borderRadius:7,border:"none",background:difficulty===key?`${d.color}22`:"transparent",color:difficulty===key?d.color:"#6b5f7b",fontWeight:700,fontSize:"0.6rem",cursor:"pointer",fontFamily:"inherit",outline:difficulty===key?`1.5px solid ${d.color}44`:"1.5px solid transparent"}}>{d.emoji} {d.label}<br/><span style={{fontSize:"0.5rem",opacity:0.8}}>+{d.xp}xp +{d.heal}hp</span></button>))}
+        <div style={{display:"flex",gap:4,marginBottom:4}}>
+          {Object.entries(DIFFICULTY).map(([key,d])=>(<button key={key} onClick={()=>setDifficulty(key)} style={{flex:1,padding:"4px 0",borderRadius:7,border:"none",background:difficulty===key?`${d.color}22`:"transparent",color:difficulty===key?d.color:"#6b5f7b",fontWeight:700,fontSize:"0.6rem",cursor:"pointer",fontFamily:"inherit",outline:difficulty===key?`1.5px solid ${d.color}44`:"1.5px solid transparent"}}>{d.emoji} {d.label} <span style={{fontSize:"0.45rem",opacity:0.7}}>+{d.xp}xp</span></button>))}
         </div>
         <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
           <span style={{fontSize:"0.6rem",color:"#8b7fa0",marginRight:4,lineHeight:"24px"}}>⏰</span>
@@ -725,6 +721,7 @@ export default function TodoRPG(){
                   {isDebuff?`💀 ${formatCountdown(-grace)} 초과`:isOverdue?`⚠️ 유예 ${formatCountdown(grace)}`:isUrgent?`🔥 ${formatCountdown(remaining)}`:`⏰ ${formatCountdown(remaining)}`}
                 </div>}
               </div>
+              {todo.done&&todo.proofUrl&&<span style={{fontSize:"0.55rem",opacity:0.7}} title="사진 인증 완료">📸</span>}
               <span style={{fontSize:"0.55rem",color:d.color,fontWeight:700,background:`${d.color}12`,padding:"2px 6px",borderRadius:5,whiteSpace:"nowrap"}}>{todo.done?"✓":"+"}{d.xp}<span style={{color:"#4ade80"}}> +{d.heal}hp</span></span>
               <button onClick={()=>deleteTodo(todo.id)} style={{background:"none",border:"none",color:"#4a4258",cursor:"pointer",fontSize:"0.9rem",padding:"0 2px",lineHeight:1}}>×</button>
             </div>
