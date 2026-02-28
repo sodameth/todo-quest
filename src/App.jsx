@@ -210,41 +210,46 @@ const LootModal=({items,onClose})=>(<div onClick={onClose} style={{position:"fix
 </div></div>);
 
 /* ─── ACHIEVEMENT TOAST ─── */
-const AchievementToast=({achievement,onDone})=>{const[fading,setFading]=useState(false);useEffect(()=>{const f=setTimeout(()=>setFading(true),8500);const t=setTimeout(onDone,10000);return()=>{clearTimeout(f);clearTimeout(t)}},[onDone]);return(
+const AchievementToast=({achievement,onDone})=>{const[fading,setFading]=useState(false);useEffect(()=>{const f=setTimeout(()=>setFading(true),3500);const t=setTimeout(onDone,5000);return()=>{clearTimeout(f);clearTimeout(t)}},[onDone]);return(
 <div style={{position:"fixed",top:20,left:"50%",transform:"translateX(-50%)",zIndex:3000,background:"linear-gradient(135deg,#1e1932ee,#16131fee)",border:"1.5px solid rgba(251,191,36,0.4)",borderRadius:16,padding:"12px 20px",display:"flex",alignItems:"center",gap:12,animation:fading?"slideUp 1.5s ease-out forwards":"slideDown 0.4s ease-out",boxShadow:"0 8px 30px rgba(0,0,0,0.5)"}}>
 <span style={{fontSize:"1.8rem"}}>{achievement.emoji}</span>
 <div><div style={{fontSize:"0.6rem",color:"#fbbf24",fontWeight:700,marginBottom:2}}>🏅 업적 달성!</div>
 <div style={{fontSize:"0.85rem",color:"#e8e0f0",fontWeight:700}}>{achievement.name}</div>
 <div style={{fontSize:"0.6rem",color:"#8b7fa0"}}>{achievement.desc}</div></div></div>)};
 
+/* ─── LOCALSTORAGE PERSISTENCE ─── */
+const SAVE_KEY='todoquest_save';
+const loadSave=()=>{try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{}}catch{return{}}};
+
 /* ═══════════════════════════ MAIN APP ═══════════════════════════ */
 export default function TodoRPG(){
-  const[todos,setTodos]=useState([]);
+  const[saved]=useState(loadSave);
+  const[todos,setTodos]=useState(saved.todos||[]);
   const[input,setInput]=useState("");
   const[difficulty,setDifficulty]=useState("easy");
   const[deadlineMin,setDeadlineMin]=useState(30);
 
   /* categories */
-  const[categories,setCategories]=useState([]);
+  const[categories,setCategories]=useState(saved.categories||[]);
   const[selectedCat,setSelectedCat]=useState(null); // for new todo
   const[filterCat,setFilterCat]=useState("all"); // for filtering list
   const[showCatManager,setShowCatManager]=useState(false);
   const[newCatName,setNewCatName]=useState("");
   const[newCatEmoji,setNewCatEmoji]=useState("📌");
 
-  const[hero,setHero]=useState({level:1,xp:0,hp:100});
-  const[dragonStage,setDragonStage]=useState(0);
-  const[dragonHp,setDragonHp]=useState(DRAGON_STAGES[0].hp);
-  const[battleLog,setBattleLog]=useState([]);
+  const[hero,setHero]=useState(saved.hero||{level:1,xp:0,hp:100});
+  const[dragonStage,setDragonStage]=useState(saved.dragonStage||0);
+  const[dragonHp,setDragonHp]=useState(saved.dragonHp??DRAGON_STAGES[0].hp);
+  const[battleLog,setBattleLog]=useState(saved.battleLog||[]);
   const[screen,setScreen]=useState("todo"); // todo|battle|inventory|achievements
   const[now,setNow]=useState(Date.now());
   const[floats,setFloats]=useState([]);
-  const[completedCount,setCompletedCount]=useState(0);
-  const[victoryDragons,setVictoryDragons]=useState(0);
+  const[completedCount,setCompletedCount]=useState(saved.completedCount||0);
+  const[victoryDragons,setVictoryDragons]=useState(saved.victoryDragons||0);
 
   /* combo */
-  const[combo,setCombo]=useState(0);
-  const[maxCombo,setMaxCombo]=useState(0);
+  const[combo,setCombo]=useState(saved.combo||0);
+  const[maxCombo,setMaxCombo]=useState(saved.maxCombo||0);
   const comboTimer=useRef(null);
 
   /* animation */
@@ -266,29 +271,29 @@ export default function TodoRPG(){
   /* skills */
   const[skillCooldowns,setSkillCooldowns]=useState({});
   const[activeBuffs,setActiveBuffs]=useState({crit:false,shield:false,fury:0});
-  const[skillUseCount,setSkillUseCount]=useState(0);
+  const[skillUseCount,setSkillUseCount]=useState(saved.skillUseCount||0);
 
   /* items & equipment */
-  const[inventory,setInventory]=useState([]);
-  const[equipped,setEquipped]=useState({atk:null,def:null});
+  const[inventory,setInventory]=useState(saved.inventory||[]);
+  const[equipped,setEquipped]=useState(saved.equipped||{atk:null,def:null});
 
   /* achievements */
-  const[unlockedAch,setUnlockedAch]=useState([]);
-  const[hardCount,setHardCount]=useState(0);
-  const[onTimeCount,setOnTimeCount]=useState(0);
+  const[unlockedAch,setUnlockedAch]=useState(saved.unlockedAch||[]);
+  const[hardCount,setHardCount]=useState(saved.hardCount||0);
+  const[onTimeCount,setOnTimeCount]=useState(saved.onTimeCount||0);
 
   /* pets */
-  const[pets,setPets]=useState([]);
-  const[activePet,setActivePet]=useState(null);
-  const[usedRevive,setUsedRevive]=useState(false);
+  const[pets,setPets]=useState(saved.pets||[]);
+  const[activePet,setActivePet]=useState(saved.activePet||null);
+  const[usedRevive,setUsedRevive]=useState(saved.usedRevive||false);
 
   /* daily quest */
   const dayKey=Math.floor(Date.now()/(1000*60*60*24));
-  const[dailyQuest,setDailyQuest]=useState(()=>generateDailyQuest(dayKey));
-  const[dailyCompleted,setDailyCompleted]=useState(0);
+  const[dailyQuest,setDailyQuest]=useState(()=>saved.dailyQuest||generateDailyQuest(dayKey));
+  const[dailyCompleted,setDailyCompleted]=useState(saved.dailyCompleted||0);
 
   /* drag kill count for achievements */
-  const[dragonsKilled,setDragonsKilled]=useState(0);
+  const[dragonsKilled,setDragonsKilled]=useState(saved.dragonsKilled||0);
 
   const floatId=useRef(0);const dmgId=useRef(0);const logRef=useRef(null);const prevLevel=useRef(hero.level);
 
@@ -306,6 +311,24 @@ export default function TodoRPG(){
   /* pet bonus */
   const petBonus=activePet?.effect||{};
   const xpMultiplier=(1+(petBonus.xpBonus||0))*(combo>=10?2.0:combo>=5?1.5:combo>=3?1.2:1.0);
+
+  /* ─── AUTO-SAVE TO LOCALSTORAGE ─── */
+  const saveRef=useRef();
+  saveRef.current={todos,categories,hero,dragonStage,dragonHp,battleLog,completedCount,victoryDragons,
+    combo,maxCombo,skillUseCount,inventory,equipped,unlockedAch,hardCount,onTimeCount,
+    pets,activePet,usedRevive,dailyQuest,dailyCompleted,dragonsKilled};
+  useEffect(()=>{
+    try{localStorage.setItem(SAVE_KEY,JSON.stringify(saveRef.current))}catch(e){}
+  },[todos,categories,hero,dragonStage,dragonHp,battleLog,completedCount,victoryDragons,
+    combo,maxCombo,skillUseCount,inventory,equipped,unlockedAch,hardCount,onTimeCount,
+    pets,activePet,usedRevive,dailyQuest,dailyCompleted,dragonsKilled]);
+  useEffect(()=>{
+    const doSave=()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(saveRef.current))}catch(e){}};
+    const onHide=()=>{if(document.hidden)doSave()};
+    window.addEventListener('beforeunload',doSave);
+    document.addEventListener('visibilitychange',onHide);
+    return()=>{window.removeEventListener('beforeunload',doSave);document.removeEventListener('visibilitychange',onHide)};
+  },[]);
 
   useEffect(()=>{if(logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight},[battleLog]);
   useEffect(()=>{if(hero.level>prevLevel.current)setShowLevelUp(hero.level);prevLevel.current=hero.level},[hero.level]);
